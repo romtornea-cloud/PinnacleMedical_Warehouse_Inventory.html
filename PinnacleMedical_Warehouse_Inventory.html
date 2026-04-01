@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinnacle | Inventory System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --pinnacle-red: #c1272d; --pinnacle-dark: #1a1a1a; --bg: #f4f7f6; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); 
+            background-image: radial-gradient(circle at 2px 2px, rgba(193, 39, 45, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+            margin: 0; padding: 15px; 
+        }
+        .wrapper { max-width: 1600px; margin: auto; background: rgba(255, 255, 255, 0.95); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 20px; min-height: 95vh; display: flex; flex-direction: column; position: relative; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--pinnacle-red); padding-bottom: 10px; margin-bottom: 15px; }
+        .brand h1 { margin: 0; color: var(--pinnacle-red); font-size: 42px; font-weight: 900; text-transform: uppercase; line-height: 1; letter-spacing: 2px; }
+        .brand span { font-size: 11px; font-weight: bold; color: #555; }
+        
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+        .date-box { background: #eee; padding: 8px 20px; border-radius: 5px; border-left: 5px solid var(--pinnacle-red); display: flex; flex-direction: column; align-items: center; min-width: 220px; }
+        #live-date { font-size: 14px; font-weight: 800; color: var(--pinnacle-dark); text-transform: uppercase; }
+        #live-clock { font-size: 18px; font-weight: 900; color: var(--pinnacle-red); }
+        
+        .year-selector { background: white; border: 2px solid var(--pinnacle-red); padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        .nav-bar { display: flex; flex-wrap: wrap; gap: 2px; background: #333; padding: 5px; border-radius: 5px 5px 0 0; }
+        .nav-btn { flex: 1; min-width: 110px; padding: 12px 5px; border: none; background: transparent; color: #ccc; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; transition: 0.3s; }
+        .nav-btn:hover { background: #444; color: white; }
+        .nav-btn.active { background: var(--pinnacle-red); color: white; }
+        
+        .sub-nav-hosp { display: flex; gap: 10px; background: #e9ecef; padding: 15px; border: 1px solid #ddd; border-top: none; overflow-x: auto; margin-bottom: 15px; }
+        .hosp-btn { padding: 8px 18px; border-radius: 4px; border: 1px solid #bbb; background: white; cursor: pointer; white-space: nowrap; font-size: 12px; font-weight: 700; }
+        .hosp-btn.active { background: #007bff; color: white; border-color: #007bff; }
+        
+        .entry-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; align-items: end; }
+        .entry-panel div label { display: block; font-size: 11px; font-weight: 800; color: #444; margin-bottom: 5px; text-transform: uppercase; }
+        
+        .setup-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 10px; }
+        .setup-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; }
+        .setup-card h3 { margin-top: 0; font-size: 14px; border-bottom: 2px solid var(--pinnacle-red); padding-bottom: 5px; text-transform: uppercase; }
+        .setup-input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; font-size: 13px; box-sizing: border-box; }
+        .table-container { flex-grow: 1; overflow-x: auto; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px; background: white; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th { background: var(--pinnacle-dark); color: white; padding: 12px; font-size: 11px; text-align: left; text-transform: uppercase; position: sticky; top: 0; z-index: 10; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 12px; font-weight: 600; }
+        tr:nth-child(even) { background: #fdfdfd; }
+        
+        .status-overdue { color: #c1272d; font-weight: 900; animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        .btn-main { background: #27ae60; color: white; border: none; padding: 11px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-print { background: var(--pinnacle-dark); color: white; border: none; padding: 11px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        .btn-pdf { background: #e67e22; color: white; border: none; padding: 11px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .print-footer { display: none; width: 100%; margin-top: 50px; padding-bottom: 20px; }
+        .sig-box { width: 220px; border-top: 2px solid #000; text-align: center; font-weight: bold; padding-top: 5px; font-size: 12px; }
+
+        /* Print Header - Specifically for Tab Name and Year */
+        #print-header-info { display: none; text-align: right; font-weight: 800; text-transform: uppercase; color: var(--pinnacle-red); font-size: 18px; }
+
+        @media print {
+            .nav-bar, .sub-nav-hosp, .entry-panel, .search-bar, .action-ico, .ico-edit, .ico-del, button, .year-selector, .date-box { display: none !important; }
+            #print-header-info { display: block !important; }
+            .wrapper { box-shadow: none; border: none; width: 100%; padding: 0; }
+            .table-container { overflow: visible; border: none; }
+            table { min-width: 100% !important; border: 1px solid #000; }
+            th, td { border: 1px solid #000 !important; padding: 4px; font-size: 9px; color: black !important; }
+            .print-footer { display: flex; justify-content: space-around; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper" id="export-area">
+    <div class="header-top">
+        <div class="brand"><h1>Pinnacle</h1><span>MEDICAL SUPPLIES AND SERVICES UNLIMITED INC.</span></div>
+        <div class="header-controls">
+            <div id="print-header-info"></div>
+            
+            <select id="active-year" class="year-selector" onchange="changeYear()"></select>
+            <div class="date-box">
+                <div id="live-date"></div>
+                <div id="live-clock"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <button class="nav-btn active" onclick="tab('stockin')">Stock In</button>
+        <button class="nav-btn" onclick="tab('stockout')">Stock Out</button>
+        <button class="nav-btn" onclick="tab('consignment')">Consignment</button>
+        <button class="nav-btn" onclick="tab('returns')">Returns</button>
+        <button class="nav-btn" onclick="tab('samples')">Samples</button>
+        <button class="nav-btn" onclick="tab('cancelled')">Cancelled SI</button>
+        <button class="nav-btn" onclick="tab('dues')">30D Payments</button>
+        <button class="nav-btn" onclick="tab('inventory')">Inv. Balance</button>
+        <button class="nav-btn" onclick="tab('setup')">Master Setup</button>
+    </div>
+
+    <div id="hosp-bar" class="sub-nav-hosp" style="display:none;"></div>
+    
+    <div id="main-content-area">
+        <div class="entry-panel" id="entry-form"></div>
+    </div>
+
+    <div class="search-bar" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="master-search" placeholder="Search records..." onkeyup="render()" style="flex-grow: 1;">
+        <button class="btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> EXPORT PDF</button>
+        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> PRINT</button>
+    </div>
+
+    <div class="table-container" id="table-wrap">
+        <table id="main-table"><thead id="h-table"></thead><tbody id="b-table"></tbody></table>
+    </div>
+
+    <div class="print-footer" id="p-footer">
+        <div class="sig-box">PREPARED BY</div>
+        <div class="sig-box">NOTED BY</div>
+        <div class="sig-box">RECEIVED BY</div>
+    </div>
+</div>
+
+<datalist id="data-items"></datalist>
+<datalist id="data-targets"></datalist>
+
+<script>
+    let currentYear = new Date().getFullYear();
+    let db;
+    let activeTab = 'stockin'; 
+    let activeHosp = ''; 
+    let editId = null;
+
+    function init() {
+        const yrSel = document.getElementById('active-year');
+        for(let i=2021; i<=2035; i++) {
+            let opt = document.createElement('option');
+            opt.value = i; opt.innerText = "Year " + i;
+            if(i === currentYear) opt.selected = true;
+            yrSel.appendChild(opt);
+        }
+        loadYearData();
+        setInterval(updateClock, 1000);
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        document.getElementById('live-date').innerText = `${days[now.getDay()]}, ${months[now.getMonth()]} ${String(now.getDate()).padStart(2,'0')}, ${now.getFullYear()}`;
+        document.getElementById('live-clock').innerText = now.toLocaleTimeString();
+    }
+
+    function loadYearData() {
+        currentYear = document.getElementById('active-year').value;
+        const key = `PINNACLE_DB_${currentYear}`;
+        db = JSON.parse(localStorage.getItem(key)) || { items: [], hospitals: [], clients: [], logs: [] };
+        if (currentYear == "2026" && !localStorage.getItem(key) && localStorage.getItem('PINNACLE_MASTER_DB')) {
+            db = JSON.parse(localStorage.getItem('PINNACLE_MASTER_DB'));
+        }
+        updateDatalists();
+        tab('stockin');
+    }
+
+    function changeYear() { loadYearData(); }
+
+    function sync() {
+        localStorage.setItem(`PINNACLE_DB_${currentYear}`, JSON.stringify(db));
+        updateDatalists(); render();
+    }
+
+    function fmtD(d) { 
+        if(!d) return '--';
+        const date = new Date(d);
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        return `${days[date.getDay()]}, ${months[date.getMonth()]} ${String(date.getDate()).padStart(2,'0')}, ${date.getFullYear()}`;
+    }
+
+    function fmtN(n) {
+        return Number(n).toLocaleString('en-US');
+    }
+
+    function updateDatalists() {
+        document.getElementById('data-items').innerHTML = db.items.map(i => `<option value="${i}">`).join('');
+        const all = [...db.hospitals, ...db.clients].sort();
+        document.getElementById('data-targets').innerHTML = all.map(t => `<option value="${t}">`).join('');
+    }
+
+    function tab(name) {
+        activeTab = name; editId = null;
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().replace(/ /g,'') === name.replace(/ /g,'')));
+        document.getElementById('hosp-bar').style.display = (name === 'consignment') ? 'flex' : 'none';
+        if (name === 'consignment') {
+            document.getElementById('hosp-bar').innerHTML = db.hospitals.map(h => `<button class="hosp-btn ${activeHosp===h?'active':''}" onclick="setH('${h}')">${h}</button>`).join('');
+            if (!activeHosp && db.hospitals.length > 0) activeHosp = db.hospitals[0];
+        }
+        
+        // Update Print Header Info
+        const displayTab = name.toUpperCase().replace(/STOCK/g, 'STOCK ').replace(/INVENTORY/g, 'INVENTORY BALANCE');
+        document.getElementById('print-header-info').innerText = `${displayTab} - YEAR ${currentYear}`;
+        
+        render();
+    }
+
+    function setH(h) { activeHosp = h; tab('consignment'); }
+
+    function render() {
+        const form = document.getElementById('entry-form');
+        const head = document.getElementById('h-table');
+        const search = document.getElementById('master-search').value.toLowerCase();
+        const wrap = document.getElementById('table-wrap');
+        form.innerHTML = ''; head.innerHTML = ''; wrap.style.display = 'block';
+
+        if (activeTab === 'setup') {
+            wrap.style.display = 'none';
+            form.className = "";
+            form.innerHTML = `<div class="setup-container">
+                <div class="setup-card"><h3>New Items</h3><div class="setup-input-group"><input id="mi"><button onclick="addM('items','mi')" class="btn-main">Add</button></div>${renderSetupList('items')}</div>
+                <div class="setup-card"><h3>New Hospital Consignment</h3><div class="setup-input-group"><input id="mh"><button onclick="addM('hospitals','mh')" class="btn-main">Add</button></div>${renderSetupList('hospitals')}</div>
+                <div class="setup-card"><h3>New Clients / Doctors</h3><div class="setup-input-group"><input id="mc"><button onclick="addM('clients','mc')" class="btn-main">Add</button></div>${renderSetupList('clients')}</div>
+            </div>`;
+        } else {
+            form.className = "entry-panel";
+            renderFields(form);
+            let h = `<tr><th>Date</th>`;
+            if(activeTab==='stockout') h+=`<th>Client</th><th>SI No</th><th>Item</th><th>Unit</th><th>Qty</th><th>P.O.</th>`;
+            else if(activeTab==='stockin') h+=`<th>Item</th><th>Unit</th><th>Qty</th><th>Doc No</th>`;
+            else if(activeTab==='consignment') h+=`<th>Item</th><th>Unit</th><th>Qty</th><th>DR No</th><th>C.O. No</th><th>SI (Sold)</th><th>Bal</th>`;
+            else if(activeTab==='returns' || activeTab==='samples') h+=`<th>Item</th><th>Unit</th><th>Qty</th><th>Ref</th><th>Source</th>`;
+            else if(activeTab==='cancelled') h+=`<th>SI Number</th><th>Reason/Remarks</th>`;
+            else if(activeTab==='inventory') h = `<tr><th>Item</th><th>Unit</th><th>Warehouse</th><th>Consigned</th><th>Total</th>`;
+            else if(activeTab==='dues') h = `<tr><th>Client</th><th>Inv Date</th><th>Due Date</th><th>SI No</th><th>Status</th>`;
+            head.innerHTML = (activeTab==='inventory' || activeTab==='dues') ? h : h + `<th class="action-ico">Action</th></tr>`;
+            renderBody(search);
+        }
+    }
+
+    function renderSetupList(key) {
+        return `<div style="max-height:300px; overflow-y:auto;"><table style="min-width:100%">${db[key].map((x,i)=>`<tr><td>${x}</td><td width="40"><i class="fas fa-trash ico-del" style="cursor:pointer" onclick="delM('${key}',${i})"></i></td></tr>`).join('')}</table></div>`;
+    }
+
+    function renderFields(f) {
+        if(activeTab==='cancelled') {
+            f.innerHTML = `<div><label>SI No</label><input id="e-ref"></div><div><label>Reason</label><input id="e-target"></div><button class="btn-main" onclick="process()">SAVE</button>`;
+            return;
+        }
+        f.innerHTML = `<div><label>Date</label><input type="date" id="e-date" value="${new Date().toISOString().split('T')[0]}"></div>
+            <div><label>Item Name</label><input id="e-item" list="data-items"></div>
+            <div><label>Qty</label><input type="number" id="e-qty"></div>
+            ${activeTab==='stockin'?'<div><label>Doc No</label><input id="e-ref"></div>':''}
+            ${activeTab==='stockout'?'<div><label>Client Name</label><input id="e-target" list="data-targets"></div><div><label>SI No</label><input id="e-ref"></div><div><label>P.O. No</label><input id="e-po"></div>':''}
+            ${activeTab==='consignment'?'<div><label>DR No</label><input id="e-ref"></div><div><label>C.O. No</label><input id="e-co"></div><div><label>SI (If Sold)</label><input id="e-si"></div>':''}
+            ${activeTab==='returns' || activeTab==='samples'?'<div><label>Ref No</label><input id="e-ref"></div><div><label>Source</label><input id="e-target" list="data-targets"></div>':''}
+            <button class="btn-main" onclick="process()">${editId?'UPDATE':'SAVE'}</button>`;
+    }
+
+    function renderBody(s) {
+        const body = document.getElementById('b-table'); body.innerHTML = '';
+        if (activeTab==='inventory') {
+            db.items.forEach(it => {
+                const w = calc(it,'whse'); const c = calc(it,'cons');
+                addRow(body,[it, 'pc', fmtN(w), fmtN(c), fmtN(w+c)], s);
+            });
+        } else if (activeTab==='dues') {
+            db.logs.filter(l=>l.tab==='stockout').forEach(l=>{
+                let dd = new Date(l.date); dd.setDate(dd.getDate()+30);
+                let over = new Date() > dd;
+                addRow(body,[l.target, fmtD(l.date), fmtD(dd), l.ref, over ? `<span class="status-overdue">OVERDUE Since ${fmtD(dd)}</span>` : `OK`],s);
+            });
+        } else if (activeTab === 'cancelled') {
+            db.logs.filter(l=>l.tab==='cancelled').forEach(l => {
+                addRow(body, [l.ref, l.target, `<i class="fas fa-trash ico-del action-ico" onclick="delL('${l.id}')"></i>`], s);
+            });
+        } else if (activeTab !== 'setup') {
+            db.logs.filter(l=>l.tab===activeTab && (activeTab!=='consignment' || l.hospital===activeHosp)).reverse().forEach(l => {
+                let cols = [fmtD(l.date)];
+                if(activeTab==='stockout') cols.push(l.target, l.ref, l.item, 'pc', fmtN(l.qty), l.po || '--');
+                else if(activeTab==='stockin') cols.push(l.item, 'pc', fmtN(l.qty), l.ref);
+                else if(activeTab==='consignment') {
+                    let running = db.logs.filter(x=>x.item===l.item && x.hospital===activeHosp && x.tab==='consignment' && x.id <= l.id).reduce((a,b)=>a+(b.si? -Number(b.qty) : Number(b.qty)), 0);
+                    cols.push(l.item, 'pc', fmtN(l.qty), l.ref, l.co||'--', l.si||'--', fmtN(running));
+                }
+                else cols.push(l.item, 'pc', fmtN(l.qty), l.ref, l.target);
+                cols.push(`<i class="fas fa-edit action-ico" style="color:#2980b9; cursor:pointer" onclick="editL('${l.id}')"></i><i class="fas fa-trash action-ico" style="color:#c0392b; cursor:pointer" onclick="delL('${l.id}')"></i>`);
+                addRow(body,cols,s);
+            });
+        }
+    }
+
+    function addRow(b,c,s) {
+        if (s && !c.join(' ').toLowerCase().includes(s)) return;
+        let tr = document.createElement('tr');
+        c.forEach(v => { let td=document.createElement('td'); td.innerHTML=v; tr.appendChild(td); });
+        b.appendChild(tr);
+    }
+
+    function calc(item, mode) {
+        const sum = (t) => db.logs.filter(l=>l.item===item && l.tab===t).reduce((a,b)=>a+Number(b.qty),0);
+        const cin = db.logs.filter(l=>l.item===item && l.tab==='consignment' && !l.si).reduce((a,b)=>a+Number(b.qty),0);
+        const cout = db.logs.filter(l=>l.item===item && l.tab==='consignment' && l.si).reduce((a,b)=>a+Number(b.qty),0);
+        return mode==='whse' ? (sum('stockin')+sum('returns'))-(sum('stockout')+sum('consignment')+sum('samples')) : cin-cout;
+    }
+
+    function process() {
+        const item = document.getElementById('e-item')?.value || '';
+        if (activeTab !== 'cancelled' && !db.items.includes(item)) return alert("Error: Item not in Master list.");
+        const entry = { 
+            id: editId || Date.now(), 
+            tab: activeTab, 
+            date: document.getElementById('e-date')?.value || new Date().toISOString(), 
+            item: item, qty: document.getElementById('e-qty')?.value || 0, ref: document.getElementById('e-ref')?.value || '', target: document.getElementById('e-target')?.value || '', hospital: activeHosp, co: document.getElementById('e-co')?.value || '', si: document.getElementById('e-si')?.value || '', po: document.getElementById('e-po')?.value || '' 
+        };
+        if (editId) db.logs = db.logs.map(l=>l.id == editId ? entry : l); else db.logs.push(entry);
+        sync();
+    }
+
+    function editL(id) {
+        const l = db.logs.find(x=>x.id==id); editId=id; render();
+        if(document.getElementById('e-date')) document.getElementById('e-date').value = l.date; 
+        if(document.getElementById('e-item')) document.getElementById('e-item').value = l.item;
+        if(document.getElementById('e-qty')) document.getElementById('e-qty').value = l.qty;
+        if(document.getElementById('e-ref')) document.getElementById('e-ref').value = l.ref;
+        if(document.getElementById('e-target')) document.getElementById('e-target').value = l.target;
+        if(document.getElementById('e-co')) document.getElementById('e-co').value = l.co;
+        if(document.getElementById('e-si')) document.getElementById('e-si').value = l.si;
+        if(document.getElementById('e-po')) document.getElementById('e-po').value = l.po;
+    }
+
+    function addM(k,id) { 
+        let v = document.getElementById(id).value.trim(); 
+        if(!v) return;
+        // Logic to prevent duplicate names (case-insensitive)
+        let exists = db[k].some(existing => existing.toLowerCase() === v.toLowerCase());
+        if(exists) {
+            alert("Error: This name already exists in the list.");
+            return;
+        }
+        db[k].push(v); 
+        db[k].sort(); 
+        sync(); 
+        document.getElementById(id).value = ''; // Clear input after adding
+    }
+    
+    function delL(id) { if(confirm("Delete Record?")) { db.logs = db.logs.filter(l=>l.id!=id); sync(); } }
+    function delM(k,i) { if(confirm("Delete Master Item?")) { db[k].splice(i,1); sync(); } }
+
+    function exportPDF() {
+        const element = document.getElementById('export-area');
+        const footer = document.getElementById('p-footer');
+        const printInfo = document.getElementById('print-header-info');
+        const dateBox = document.querySelector('.date-box');
+        
+        // Prepare for Export
+        footer.style.display = 'flex';
+        printInfo.style.display = 'block';
+        dateBox.style.display = 'none';
+
+        const opt = {
+            margin: 10,
+            filename: `Pinnacle_${activeTab}_${currentYear}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Restore UI
+            footer.style.display = 'none';
+            printInfo.style.display = 'none';
+            dateBox.style.display = 'flex';
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>
